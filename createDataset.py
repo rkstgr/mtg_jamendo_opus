@@ -107,7 +107,7 @@ if __name__ == '__main__':
     for i, t in enumerate(tracks):
         t.download(mp3_dir)
         t.convert(mp3_directory=mp3_dir, target_directory=opus_dir, ffmpeg_path=ffmpeg_path, kbits=kbits)
-        print(f"Done with {t.id}. {len(tracks) - i} left from {len(tracks)}")
+        print(f"Done with track:{t.id} | {len(tracks) - i} left from {len(tracks)}")
 
     # for chunk_nr, chunk_tracks in groupedBy(tracks, "chunk_nr").items():
     #     create_archive(chunk_nr, chunk_tracks)
