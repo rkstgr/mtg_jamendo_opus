@@ -80,10 +80,10 @@ def groupedBy(iterable: Iterable[Track], attribute: str):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--mp3_directory", type=Path, default=tmp_directory)
-parser.add_argument("--opus_directory", type=Path, default=Path("./opus"))
-parser.add_argument("--kbits", type=int, default=64)
-parser.add_argument("--ffmpeg_path", type=Path, default=Path("ffmpeg"))
+parser.add_argument("--mp3", type=Path, default=tmp_directory)
+parser.add_argument("--opus", type=Path, default=Path("./opus"))
+parser.add_argument("--kb", type=int, default=64)
+parser.add_argument("--ffmpeg", type=Path, default=Path("ffmpeg"))
 
 if __name__ == '__main__':
     args = parser.parse_args()
