@@ -2,15 +2,18 @@
 Downloads the original mp3 files from https://github.com/MTG/mtg-jamendo-dataset and
 converts them to opus format. The final files are stored under ./opus/
 """
+import os
 import subprocess
 import tarfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Set, Iterable
+from typing import Set, Iterable, Dict, Any, Callable, List
 import pandas as pd
 from dataclasses import dataclass
 import gdown
 import argparse
+import multiprocessing as mp
+import logging
 
 from tqdm import tqdm
 
@@ -53,16 +56,16 @@ class Track:
     def download(self, mp3_directory: Path):
         """Downloads the gdrive file and extract the track"""
         if self.mp3_path(mp3_directory).exists():
-            print("Already downloaded", self.mp3_path(mp3_directory).absolute())
+            logging.info("Already downloaded", self.mp3_path(mp3_directory).absolute())
             return
         gdrive_path = download_gdrive(self.gdrive_id, tmp_directory)
         with tarfile.open(gdrive_path) as tar:
-            print("Extract", gdrive_path.name)
+            logging.info("Extract", gdrive_path.name)
             # open your tar.gz file
             for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
                 # Extract member
                 tar.extract(member=member, path=mp3_directory)
-        print("Delete", gdrive_path.name)
+        logging.info("Delete", gdrive_path.name)
         gdrive_path.unlink()
 
     def convert(self, mp3_directory: Path, target_directory: Path, ffmpeg_path: Path, kbits=64):
@@ -70,19 +73,19 @@ class Track:
         mp3_path = self.mp3_path(mp3_directory)
         opus_path = target_directory / f"{self.id}.opus"
         if opus_path.exists():
-            print("Already converted", opus_path.absolute())
+            logging.info("Already converted", opus_path.absolute())
             return
-        print("Convert", mp3_path.name)
+        logging.info("Convert", mp3_path.name)
         subprocess.run(
             [ffmpeg_path, '-y', '-i', mp3_path.absolute().__str__(), '-c:a', 'libopus',
              '-b:a',
              f'{kbits}k', opus_path.absolute().__str__()], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def groupedBy(iterable: Iterable[Track], attribute: str):
+def groupedBy(iterable: Iterable[Track], key_func: Callable[[Track], Any]) -> Dict:
     ret = defaultdict(list)
     for k in iterable:
-        ret[k.__getattribute__(attribute)].append(k)
+        ret[key_func(k)].append(k)
     return dict(ret)
 
 
@@ -91,23 +94,35 @@ parser.add_argument("--mp3", type=Path, default=tmp_directory)
 parser.add_argument("--opus", type=Path, default=Path("./opus"))
 parser.add_argument("--kb", type=int, default=64, help="opus bitrate in kbits")
 parser.add_argument("--ffmpeg", type=Path, default=Path("ffmpeg"), help="Path to ffmpeg")
+parser.add_argument("--cpus", type=int, default=1, help="Number of spawned processes")
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
     df = pd.read_parquet("tracks.parquet")
     tracks = [Track(**row) for row in df.to_dict(orient="records")]
-    print(f"Found {len(tracks)} tracks")
+    logging.info(f"Found {len(tracks)} tracks")
 
     mp3_dir = args.mp3
     opus_dir = args.opus
     ffmpeg_path = args.ffmpeg
     kbits = args.kb
+    n_cpus = args.cpus
 
-    for i, t in enumerate(tracks):
-        t.download(mp3_dir)
-        t.convert(mp3_directory=mp3_dir, target_directory=opus_dir, ffmpeg_path=ffmpeg_path, kbits=kbits)
-        print(f"Done with track:{t.id} | {len(tracks) - i} left from {len(tracks)}")
+    def process_tracks(tx: List[Track], mp3: Path, opus: Path, ffmpeg: Path, kbit: int):
+        for i, t in enumerate(tx):
+            t.download(mp3)
+            t.convert(mp3, opus, ffmpeg, kbit)
+            logging.info(f"[{os.getpid()}] Done with track:{t.id} | {len(tx) - i} remaining")
+
+    gid_groups = groupedBy(tracks, lambda t: t.gdrive_nr % n_cpus)
+    processes = []
+    for group_nr, tracks in gid_groups:
+        p = mp.Process(target=process_tracks, args=(tracks, mp3_dir, opus_dir, ffmpeg_path, kbits))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
 
     # for chunk_nr, chunk_tracks in groupedBy(tracks, "chunk_nr").items():
     #     create_archive(chunk_nr, chunk_tracks)
