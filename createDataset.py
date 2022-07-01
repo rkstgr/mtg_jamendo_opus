@@ -82,8 +82,8 @@ def groupedBy(iterable: Iterable[Track], attribute: str):
 parser = argparse.ArgumentParser()
 parser.add_argument("--mp3", type=Path, default=tmp_directory)
 parser.add_argument("--opus", type=Path, default=Path("./opus"))
-parser.add_argument("--kb", type=int, default=64)
-parser.add_argument("--ffmpeg", type=Path, default=Path("ffmpeg"))
+parser.add_argument("--kb", type=int, default=64, help="opus bitrate in kbits")
+parser.add_argument("--ffmpeg", type=Path, default=Path("ffmpeg"), help="Path to ffmpeg")
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -91,10 +91,10 @@ if __name__ == '__main__':
     df = pd.read_parquet("tracks.parquet")
     tracks = [Track(**row) for row in df.to_dict(orient="records")]
 
-    mp3_dir = args.mp3_directory
-    opus_dir = args.opus_directory
-    ffmpeg_path = args.ffmpeg_path
-    kbits = args.kbits
+    mp3_dir = args.mp3
+    opus_dir = args.opus
+    ffmpeg_path = args.ffmpeg
+    kbits = args.kb
 
     for t in tracks:
         t.download(mp3_dir)
