@@ -12,6 +12,8 @@ from dataclasses import dataclass
 import gdown
 import argparse
 
+from tqdm import tqdm
+
 tmp_directory = Path("/tmp/mtg_jamendo_opus")
 
 
@@ -55,7 +57,10 @@ class Track:
         gdrive_path = download_gdrive(self.gdrive_id, mp3_directory)
         with tarfile.open(gdrive_path) as tar:
             print("Extract", gdrive_path.name)
-            tar.extractall(mp3_directory)  # extract like /mp3_directory/<gdrive_nr>/<id>.mp3
+            # open your tar.gz file
+            for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
+                # Extract member
+                tar.extract(member=member, path=mp3_directory)
         print("Delete", gdrive_path.name)
         gdrive_path.unlink()
 
@@ -90,15 +95,17 @@ if __name__ == '__main__':
 
     df = pd.read_parquet("tracks.parquet")
     tracks = [Track(**row) for row in df.to_dict(orient="records")]
+    print(f"Found {len(tracks)} tracks")
 
     mp3_dir = args.mp3
     opus_dir = args.opus
     ffmpeg_path = args.ffmpeg
     kbits = args.kb
 
-    for t in tracks:
+    for i, t in enumerate(tracks):
         t.download(mp3_dir)
         t.convert(mp3_directory=mp3_dir, target_directory=opus_dir, ffmpeg_path=ffmpeg_path, kbits=kbits)
+        print("Done with", t.id, len(tracks) - i, "left from", len(tracks))
 
     # for chunk_nr, chunk_tracks in groupedBy(tracks, "chunk_nr").items():
     #     create_archive(chunk_nr, chunk_tracks)
