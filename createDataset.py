@@ -17,7 +17,7 @@ import logging
 
 from tqdm import tqdm
 
-tmp_directory = Path("/tmp/mtg_jamendo_opus")
+tmp_directory = Path("/tmp/mtg_jamendo")
 
 
 def download_gdrive(gid: str, download_directory: Path) -> Path:
@@ -56,16 +56,19 @@ class Track:
     def download(self, mp3_directory: Path):
         """Downloads the gdrive file and extract the track"""
         if self.mp3_path(mp3_directory).exists():
-            logging.info("Already downloaded", self.mp3_path(mp3_directory).absolute())
+            print("Already downloaded", self.mp3_path(mp3_directory).absolute())
             return
         gdrive_path = download_gdrive(self.gdrive_id, tmp_directory)
-        with tarfile.open(gdrive_path) as tar:
-            logging.info("Extract", gdrive_path.name)
-            # open your tar.gz file
-            for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
-                # Extract member
-                tar.extract(member=member, path=mp3_directory)
-        logging.info("Delete", gdrive_path.name)
+        try:
+            with tarfile.open(gdrive_path) as tar:
+                print("Extract", gdrive_path.name)
+                # open your tar.gz file
+                for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
+                    # Extract member
+                    tar.extract(member=member, path=mp3_directory)
+        except FileNotFoundError:
+            print("File not found", gdrive_path.absolute())
+        print("Delete", gdrive_path.name)
         gdrive_path.unlink()
 
     def convert(self, mp3_directory: Path, target_directory: Path, ffmpeg_path: Path, kbits=64):
@@ -73,9 +76,9 @@ class Track:
         mp3_path = self.mp3_path(mp3_directory)
         opus_path = target_directory / f"{self.id}.opus"
         if opus_path.exists():
-            logging.info("Already converted", opus_path.absolute())
+            print("Already converted", opus_path.absolute())
             return
-        logging.info("Convert", mp3_path.name)
+        print("Convert", mp3_path.name)
         subprocess.run(
             [ffmpeg_path, '-y', '-i', mp3_path.absolute().__str__(), '-c:a', 'libopus',
              '-b:a',
@@ -96,12 +99,21 @@ parser.add_argument("--kb", type=int, default=64, help="opus bitrate in kbits")
 parser.add_argument("--ffmpeg", type=Path, default=Path("ffmpeg"), help="Path to ffmpeg")
 parser.add_argument("--cpus", type=int, default=1, help="Number of spawned processes")
 
+
+def process_tracks(tx: List[Track], mp3: Path, opus: Path, ffmpeg: Path, kbit: int):
+    for i, t in enumerate(tx):
+        t.download(mp3)
+        t.convert(mp3, opus, ffmpeg, kbit)
+        print(f"[{os.getpid()}] Done with track:{t.id} | {len(tx) - i} remaining")
+
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
 
     df = pd.read_parquet("tracks.parquet")
     tracks = [Track(**row) for row in df.to_dict(orient="records")]
-    logging.info(f"Found {len(tracks)} tracks")
+    print(f"Found {len(tracks)} tracks")
 
     mp3_dir = args.mp3
     opus_dir = args.opus
@@ -109,15 +121,9 @@ if __name__ == '__main__':
     kbits = args.kb
     n_cpus = args.cpus
 
-    def process_tracks(tx: List[Track], mp3: Path, opus: Path, ffmpeg: Path, kbit: int):
-        for i, t in enumerate(tx):
-            t.download(mp3)
-            t.convert(mp3, opus, ffmpeg, kbit)
-            logging.info(f"[{os.getpid()}] Done with track:{t.id} | {len(tx) - i} remaining")
-
     gid_groups = groupedBy(tracks, lambda t: t.gdrive_nr % n_cpus)
     processes = []
-    for group_nr, tracks in gid_groups:
+    for group_nr, tracks in gid_groups.items():
         p = mp.Process(target=process_tracks, args=(tracks, mp3_dir, opus_dir, ffmpeg_path, kbits))
         p.start()
         processes.append(p)
