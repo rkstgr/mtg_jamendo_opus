@@ -88,7 +88,7 @@ parser.add_argument("--ffmpeg_path", type=Path, default=Path("ffmpeg"))
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    df = pd.read_parquet("tracks.pqt")
+    df = pd.read_parquet("tracks.parquet")
     tracks = [Track(**row) for row in df.to_dict(orient="records")]
 
     mp3_dir = args.mp3_directory
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     ffmpeg_path = args.ffmpeg_path
     kbits = args.kbits
 
-    for t in tracks[0:1]:
+    for t in tracks:
         t.download(mp3_dir)
         t.convert(mp3_directory=mp3_dir, target_directory=opus_dir, ffmpeg_path=ffmpeg_path, kbits=kbits)
 
