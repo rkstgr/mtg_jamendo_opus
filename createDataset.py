@@ -17,9 +17,6 @@ import logging
 
 from tqdm import tqdm
 
-tmp_directory = Path("/tmp/mtg_jamendo")
-
-
 def download_gdrive(gid: str, download_directory: Path) -> Path:
     """Download gdrive file under /tmp/mtg_jamendo_opus/<gid>"""
     download_directory.mkdir(exist_ok=True, parents=True)
@@ -58,7 +55,7 @@ class Track:
         if self.mp3_path(mp3_directory).exists():
             print("Already downloaded", self.mp3_path(mp3_directory).absolute())
             return
-        gdrive_path = download_gdrive(self.gdrive_id, tmp_directory)
+        gdrive_path = download_gdrive(self.gdrive_id, mp3_directory)
         try:
             with tarfile.open(gdrive_path) as tar:
                 print("Extract", gdrive_path.name)
@@ -68,6 +65,7 @@ class Track:
                     tar.extract(member=member, path=mp3_directory)
         except FileNotFoundError:
             print("File not found", gdrive_path.absolute())
+            raise FileNotFoundError
         print("Delete", gdrive_path.name)
         gdrive_path.unlink()
 
@@ -93,7 +91,7 @@ def groupedBy(iterable: Iterable[Track], key_func: Callable[[Track], Any]) -> Di
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--mp3", type=Path, default=tmp_directory)
+parser.add_argument("--mp3", type=Path, default=Path("/tmp/mtg_jamendo_mp3"))
 parser.add_argument("--opus", type=Path, default=Path("./opus"))
 parser.add_argument("--kb", type=int, default=64, help="opus bitrate in kbits")
 parser.add_argument("--ffmpeg", type=Path, default=Path("ffmpeg"), help="Path to ffmpeg")
@@ -102,9 +100,13 @@ parser.add_argument("--cpus", type=int, default=1, help="Number of spawned proce
 
 def process_tracks(tx: List[Track], mp3: Path, opus: Path, ffmpeg: Path, kbit: int):
     for i, t in enumerate(tx):
-        t.download(mp3)
-        t.convert(mp3, opus, ffmpeg, kbit)
-        print(f"[{os.getpid()}] Done with track:{t.id} | {len(tx) - i} remaining")
+        try:
+            t.download(mp3)
+            t.convert(mp3, opus, ffmpeg, kbit)
+            print(f"[{os.getpid()}] Done with track:{t.id} | {len(tx) - i} remaining")
+        except Exception as e:
+            print(f"[{os.getpid()}] Error with track:{t.id} | {len(tx) - i} remaining")
+
 
 
 
