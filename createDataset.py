@@ -53,8 +53,9 @@ class Track:
     def download(self, mp3_directory: Path):
         """Downloads the gdrive file and extract the track"""
         if self.mp3_path(mp3_directory).exists():
+            print("Already downloaded", self.mp3_path(mp3_directory).absolute())
             return
-        gdrive_path = download_gdrive(self.gdrive_id, mp3_directory)
+        gdrive_path = download_gdrive(self.gdrive_id, tmp_directory)
         with tarfile.open(gdrive_path) as tar:
             print("Extract", gdrive_path.name)
             # open your tar.gz file
@@ -69,6 +70,7 @@ class Track:
         mp3_path = self.mp3_path(mp3_directory)
         opus_path = target_directory / f"{self.id}.opus"
         if opus_path.exists():
+            print("Already converted", opus_path.absolute())
             return
         print("Convert", mp3_path.name)
         subprocess.run(
