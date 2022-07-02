@@ -72,11 +72,12 @@ class Track:
     def convert(self, mp3_directory: Path, target_directory: Path, ffmpeg_path: Path, kbits=64):
         """Converts the mp3 file to opus"""
         mp3_path = self.mp3_path(mp3_directory)
+        target_directory.mkdir(exist_ok=True, parents=True)
         opus_path = target_directory / f"{self.id}.opus"
         if opus_path.exists():
             print("Already converted", opus_path.absolute())
             return
-        print("Convert", mp3_path.name)
+        print("Convert", mp3_path, "to", opus_path)
         subprocess.run(
             [ffmpeg_path, '-y', '-i', mp3_path.absolute().__str__(), '-c:a', 'libopus',
              '-b:a',
