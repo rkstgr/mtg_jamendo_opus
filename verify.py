@@ -54,6 +54,6 @@ if __name__ == '__main__':
             wrong_sha256.append(t)
             continue
 
-    print("Missing", len(missing))
-    print("Wrong sha256", len(wrong_sha256))
+    print(f"Missing ({len(missing)})", [t.path for t in missing])
+    print("Wrong sha256 ({len(wrong_sha256)})", [t.path for t in wrong_sha256])
     print("Correct", len(tracks) - len(missing) - len(wrong_sha256))
