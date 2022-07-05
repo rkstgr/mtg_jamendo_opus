@@ -41,6 +41,8 @@ if __name__ == '__main__':
     missing = []
     wrong_sha256 = []
 
+    print("Verifying", len(tracks), "tracks")
+
     for t in tqdm(tracks):
         try:
             shouldBePath = directory / f"{t.gdrive_nr}" / f"{t.id}.mp3"
