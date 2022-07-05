@@ -4,7 +4,7 @@ import tarfile
 import pandas as pd
 from tqdm import tqdm
 
-from createDataset import load_tracks
+import createDataset
 
 """
 given a directory of tar files with the name "raw_30s_audio-<id>.tar"
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     directory = Path(args.dir)
 
-    tracks = load_tracks()
+    tracks = createDataset.load_tracks()
     print("Verifying dataset in", directory.absolute())
 
     missing = []

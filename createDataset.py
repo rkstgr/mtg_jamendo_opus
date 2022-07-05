@@ -17,6 +17,7 @@ import logging
 
 from tqdm import tqdm
 
+
 def download_gdrive(gid: str, download_directory: Path) -> Path:
     """Download gdrive file under /tmp/mtg_jamendo_opus/<gid>"""
     download_directory.mkdir(exist_ok=True, parents=True)
@@ -46,6 +47,11 @@ class Track:
     main_instrument: str
     main_mood: str
     chunk_nr: int
+    mp3_sha256: str
+
+    @property
+    def path(self):
+        return f"{self.gdrive_nr}/{self.id}.mp3"
 
     def mp3_path(self, target_directory: Path):
         return target_directory / leadingZerosTwo(self.gdrive_nr) / f"{self.id}.mp3"
@@ -109,13 +115,14 @@ def process_tracks(tx: List[Track], mp3: Path, opus: Path, ffmpeg: Path, kbit: i
             print(f"[{os.getpid()}] Error with track:{t.id} | {len(tx) - i} remaining")
 
 
+def load_tracks() -> List[Track]:
+    df = pd.read_parquet("tracks.parquet")
+    return [Track(**row) for row in df.to_dict(orient="records")]
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
-
-    df = pd.read_parquet("tracks.parquet")
-    tracks = [Track(**row) for row in df.to_dict(orient="records")]
+    tracks = load_tracks()
     print(f"Found {len(tracks)} tracks")
 
     mp3_dir = args.mp3
