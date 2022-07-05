@@ -2,19 +2,18 @@
 Downloads the original mp3 files from https://github.com/MTG/mtg-jamendo-dataset and
 converts them to opus format. The final files are stored under ./opus/
 """
+import argparse
+import multiprocessing as mp
 import os
 import subprocess
 import tarfile
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Set, Iterable, Dict, Any, Callable, List
-import pandas as pd
-from dataclasses import dataclass
-import gdown
-import argparse
-import multiprocessing as mp
-import logging
 
+import gdown
+import pandas as pd
 from tqdm import tqdm
 
 

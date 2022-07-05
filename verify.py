@@ -1,29 +1,9 @@
 import argparse
 from pathlib import Path
-import tarfile
-import pandas as pd
+
 from tqdm import tqdm
 
 import createDataset
-
-"""
-given a directory of tar files with the name "raw_30s_audio-<id>.tar"
-where <id> is the id of the tar file
-
-1. extract every tar file
-    - this will create a directory with the name "<id>" and multiple mp3 files inside
-
-
-"""
-
-
-def extract_tar_file(tarFile: Path):
-    print("Extract", tarFile.name)
-    with tarfile.open(tarFile) as tar:
-        for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
-            if (directory / member.name).exists():
-                continue
-            tar.extract(member=member, path=directory)
 
 
 def sha256(file: Path) -> str:
@@ -35,23 +15,32 @@ def sha256(file: Path) -> str:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir', type=Path, required=True)
+    parser.add_argument('--skip', type=int, default=0)
     args = parser.parse_args()
     directory = Path(args.dir)
+    skip = args.skip
 
     tracks = createDataset.load_tracks()
+    tracks = tracks[skip:]
     print("Verifying dataset in", directory.absolute())
+    print("Skipping the first", skip, "tracks")
 
     missing = []
     wrong_sha256 = []
 
     for t in tqdm(tracks):
-        shouldBePath = directory / f"{t.gdrive_nr}" / f"{t.id}.mp3"
-        if not shouldBePath.exists():
-            missing.append(t)
-            continue
+        try:
+            shouldBePath = directory / f"{t.gdrive_nr}" / f"{t.id}.mp3"
+            if not shouldBePath.exists():
+                missing.append(t)
+                continue
 
-        if t.mp3_sha256 != sha256(shouldBePath):
-            wrong_sha256.append(t)
+            if t.mp3_sha256 != sha256(shouldBePath):
+                wrong_sha256.append(t)
+                continue
+        except Exception as e:
+            print(t.path, e)
+            missing.append(t)
             continue
 
     print(f"Missing ({len(missing)})", [t.path for t in missing])
