@@ -22,7 +22,7 @@ def convert(tasks: List[Tuple[Path, Path, int]]):
         ffmpeg
         .input(str(from_mp3.absolute()))
         .output(str(to_opus.absolute()), acodec="libopus", audio_bitrate=f"{kBits}k")
-        .run(overwrite_output=True)
+        .run(overwrite_output=True, capture_stdout=True, capture_stderr=True)
     )
 
     if not to_opus.exists():
