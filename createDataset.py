@@ -50,7 +50,7 @@ class Track:
 
     @property
     def path(self):
-        return f"{self.gdrive_nr}/{self.id}.mp3"
+        return f"{leadingZerosTwo(self.gdrive_nr)}/{self.id}.mp3"
 
     def mp3_path(self, target_directory: Path):
         return target_directory / leadingZerosTwo(self.gdrive_nr) / f"{self.id}.mp3"
