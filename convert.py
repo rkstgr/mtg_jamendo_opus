@@ -37,9 +37,9 @@ if __name__ == '__main__':
     parser.add_argument("--n_cpu", default=1, type=int, help="Number of CPUs to use")
     args = parser.parse_args()
 
-    mp3_directory = Path(args.mp3_directory)
-    target_directory = Path(args.target_directory)
-    ffmpeg_path = Path(args.ffmpeg_path)
+    mp3_directory = Path(args.__getattribute__("from"))
+    target_directory = Path(args.to)
+    ffmpeg_path = Path(args.ffmpeg)
 
     if not mp3_directory.exists():
         raise FileNotFoundError(f"Directory {mp3_directory} does not exist")
