@@ -1,6 +1,8 @@
 import argparse
+from itertools import repeat
 from pathlib import Path
 
+from parallelbar import progress_map
 from tqdm import tqdm
 
 import createDataset
@@ -8,56 +10,43 @@ import createDataset
 
 def sha256(file: Path) -> str:
     import hashlib
-    with open(file, "rb") as f:
-        return hashlib.sha256(f.read()).hexdigest()
+    try:
+        with open(file, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except Exception as e:
+        print(e)
+        return ""
+
+
+def verify_track(root_directory, track: createDataset.Track):
+    mp3_path = root_directory / track.path
+    if not mp3_path.exists():
+        print("Missing mp3", mp3_path.absolute())
+        return False
+    if sha256(mp3_path) != track.mp3_sha256:
+        print("Wrong sha256", mp3_path.absolute())
+        return False
+    return True
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir', type=Path, required=True)
-    parser.add_argument('--skip', type=int, default=0)
-    parser.add_argument('--path', type=Path, required=False, default=None)
     args = parser.parse_args()
     directory = Path(args.dir)
-    skip = args.skip
 
     tracks = createDataset.load_tracks()
+
     print("Verifying dataset in", directory.absolute())
-
-    if args.path is not None:
-        print("Verifying tracks from", args.path.absolute())
-        path = args.path
-        lines = open("missing.txt").readlines()
-        ids = set()
-        for line in lines:
-            ids.add(int(line.split("/")[1].split(".")[0]))
-        tracks = [t for t in tracks if t.id in ids]
-
-    if skip > 0:
-        print("Skipping the first", skip, "tracks")
-
-    tracks = tracks[skip:]
-
-    missing = []
-    wrong_sha256 = []
-
     print("Verifying", len(tracks), "tracks")
 
-    for t in tqdm(tracks):
-        try:
-            shouldBePath = directory / f"{t.gdrive_nr}" / f"{t.id}.mp3"
-            if not shouldBePath.exists():
-                missing.append(t)
-                continue
+    tasks = zip(repeat(directory), tracks)
+    result = progress_map(verify_track, tasks)
 
-            if t.mp3_sha256 != sha256(shouldBePath):
-                wrong_sha256.append(t)
-                continue
-        except Exception as e:
-            print(t.path, e)
-            missing.append(t)
-            continue
+    with open("missing-tasks.txt", "w") as f:
+        for i, r in enumerate(result):
+            if not r:
+                f.write(f"{tracks[i].id}\n")
 
-    print(f"Missing ({len(missing)})", [t.path for t in missing])
-    print("Wrong sha256 ({len(wrong_sha256)})", [t.path for t in wrong_sha256])
-    print("Correct", len(tracks) - len(missing) - len(wrong_sha256))
+    print("Correct hash:", len([r for r in result if r]))
+    print("Missing or error:", len([r for r in result if not r]))
