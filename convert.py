@@ -46,9 +46,6 @@ if __name__ == '__main__':
 
     target_directory.mkdir(exist_ok=True, parents=True)
 
-    if not ffmpeg_path.exists():
-        raise FileNotFoundError(f"File {ffmpeg_path} does not exist")
-
     print("Converting mp3 files in directory", mp3_directory.absolute())
 
     mp3_files = list(mp3_directory.glob("**/*.mp3"))
