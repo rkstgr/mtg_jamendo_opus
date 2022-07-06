@@ -18,7 +18,8 @@ def sha256(file: Path) -> str:
         return ""
 
 
-def verify_track(root_directory, track: createDataset.Track):
+def verify_track(task):
+    root_directory, track = task
     mp3_path = root_directory / track.path
     if not mp3_path.exists():
         print("Missing mp3", mp3_path.absolute())
@@ -33,6 +34,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir', type=Path, required=True)
     parser.add_argument('--filter', type=str, default=None)
+    parser.add_argument('--n_cpu', type=int, default=1)
     args = parser.parse_args()
     directory = Path(args.dir)
 
@@ -45,8 +47,8 @@ if __name__ == '__main__':
     print("Verifying dataset in", directory.absolute())
     print("Verifying", len(tracks), "tracks")
 
-    tasks = zip(repeat(directory), tracks)
-    result = progress_map(verify_track, tasks)
+    tasks = list(zip(repeat(directory), tracks))
+    result = progress_map(verify_track, tasks, n_cpu=args.n_cpu)
 
     with open("missing-tasks.txt", "w") as f:
         for i, r in enumerate(result):
