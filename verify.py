@@ -32,10 +32,15 @@ def verify_track(root_directory, track: createDataset.Track):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir', type=Path, required=True)
+    parser.add_argument('--filter', type=str, default=None)
     args = parser.parse_args()
     directory = Path(args.dir)
 
     tracks = createDataset.load_tracks()
+
+    if args.filter:
+        predicate = lambda t: eval(args.filter)(t)
+        tracks = [t for t in tracks if predicate(t)]
 
     print("Verifying dataset in", directory.absolute())
     print("Verifying", len(tracks), "tracks")
