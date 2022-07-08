@@ -20,7 +20,7 @@ if __name__ == '__main__':
   track_ids = set(t.id for t in tracks)
 
   groups = {}
-  for track_file in args.opus.glob("*.opus"):
+  for track_file in tqdm(args.opus.glob("*.opus"), desc="Creating groups"):
     track_id = int(track_file.stem)
     if track_id not in track_ids:
       continue
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
   args.to.mkdir(parents=True, exist_ok=True)
 
-  for group, group_tracks in tqdm(groups.items()):
+  for group, group_tracks in tqdm(groups.items(), desc="Packing"):
     # open tar file
     tar_path = Path(args.to) / f"{group}.tar"
     with tarfile.open(tar_path, "w") as tar:
