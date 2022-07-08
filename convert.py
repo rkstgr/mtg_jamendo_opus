@@ -1,14 +1,12 @@
 """
 Convert mp3 files to opus files
 """
+import argparse
 from itertools import repeat
 from pathlib import Path
-import argparse
-import subprocess
 from typing import Tuple, List
+
 import ffmpeg
-import parallelbar
-import tqdm
 from parallelbar import progress_map
 
 

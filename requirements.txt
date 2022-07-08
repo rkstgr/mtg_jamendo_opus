@@ -2,3 +2,5 @@ pandas
 fastparquet
 gdown
 tqdm
+ffmpeg-python
+parallelbar
