@@ -1,2 +1,5 @@
 .DS_Store
+/mtg*
+/.idea
+/__pycache__
 /opus/**
