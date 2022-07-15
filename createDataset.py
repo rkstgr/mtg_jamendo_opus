@@ -47,6 +47,7 @@ class Track:
     main_mood: str
     chunk_nr: int
     mp3_sha256: str
+    split: str  # either train or val
 
     @property
     def path(self):
