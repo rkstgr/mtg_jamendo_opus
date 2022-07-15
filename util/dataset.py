@@ -99,7 +99,7 @@ def groupedBy(iterable: Iterable[Track], key_func: Callable[[Track], Any]) -> Di
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mp3", type=Path, default=Path("/tmp/mtg_jamendo_mp3"))
-parser.add_argument("--opus", type=Path, default=Path("./opus"))
+parser.add_argument("--opus", type=Path, default=Path("../opus"))
 parser.add_argument("--kb", type=int, default=64, help="opus bitrate in kbits")
 parser.add_argument("--ffmpeg", type=Path, default=Path("ffmpeg"), help="Path to ffmpeg")
 parser.add_argument("--cpus", type=int, default=1, help="Number of spawned processes")
@@ -116,7 +116,7 @@ def process_tracks(tx: List[Track], mp3: Path, opus: Path, ffmpeg: Path, kbit: i
 
 
 def load_tracks() -> List[Track]:
-    df = pd.read_parquet("tracks.parquet")
+    df = pd.read_parquet("../tracks.parquet")
     return [Track(**row) for row in df.to_dict(orient="records")]
 
 
