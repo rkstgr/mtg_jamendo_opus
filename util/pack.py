@@ -4,7 +4,7 @@ import tarfile
 
 from tqdm import tqdm
 
-from createDataset import load_tracks
+from dataset import load_tracks
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -19,29 +19,33 @@ if __name__ == '__main__':
     tracks = [t for t in tracks if predicate(t)]
   track_ids = set(t.id for t in tracks)
 
-  groups = {}
+  splits = {
+    "train": {},
+    "val": {},
+  }
   for track_file in tqdm(args.opus.glob("*.opus"), desc="Creating groups"):
     track_id = int(track_file.stem)
     if track_id not in track_ids:
       continue
     track = next(t for t in tracks if t.id == track_id)
     group = track.chunk_nr
-    if group not in groups:
-      groups[group] = []
-    groups[group].append(track)
+    if group not in splits[track.split]:
+      splits[track.split][group] = []
+    splits[track.split][group].append(track)
 
-  print("Packing", sum([len(g) for g in groups.values()]), "tracks")
-  print("Into", len(groups), "groups")
+  print("Packing", {split: sum([len(g) for g in groups.values()]) for split, groups in splits.items()}, "tracks")
+  print("Into", {split: len(groups) for split, groups in splits.items()}, "groups")
 
   args.to.mkdir(parents=True, exist_ok=True)
 
-  for group, group_tracks in tqdm(groups.items(), desc="Packing"):
-    # open tar file
-    tar_path = Path(args.to) / f"{group}.tar"
-    with tarfile.open(tar_path, "w") as tar:
-      for track in group_tracks:
-        # add opus file
-        opus_path = args.opus / f"{track.id}.opus"
-        tar.add(opus_path, arcname=f"{track.id}.opus")
+  for split, groups in splits.items():
+    for group, group_tracks in tqdm(groups.items(), desc=f"Packing {split}"):
+      split_path = Path(args.to) / split
+      split_path.mkdir(parents=True, exist_ok=True)
+      tar_path = split_path / f"{group}.tar"
+      with tarfile.open(tar_path, "w") as tar:
+        for track in group_tracks:
+          opus_path = args.opus / f"{track.id}.opus"
+          tar.add(opus_path, arcname=f"{track.id}.opus")
 
   print("Done")

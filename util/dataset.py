@@ -116,7 +116,7 @@ def process_tracks(tx: List[Track], mp3: Path, opus: Path, ffmpeg: Path, kbit: i
 
 
 def load_tracks() -> List[Track]:
-    df = pd.read_parquet("../tracks.parquet")
+    df = pd.read_parquet(Path(__file__).parent.parent / "tracks.parquet")
     return [Track(**row) for row in df.to_dict(orient="records")]
 
 
